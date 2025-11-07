@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>🛒 Catálogo de Productos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: linear-gradient(135deg, #f7f7f7, #e8e8e8);
+      color: #333;
+      overflow-x: hidden;
+    }
+
+    h2 {
+      font-weight: 600;
+      color: #2d3436;
+      letter-spacing: -0.5px;
+    }
+
+    .product-card {
+      border: none;
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+      animation: fadeInUp 0.6s ease both;
+    }
+
+    .product-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-body h6 {
+      font-weight: 600;
+      color: #222;
+    }
+
+    .price {
+      color: #607d3b;
+      font-size: 1.1em;
+      font-weight: 600;
+    }
+
+    .stock {
+      color: #6c757d;
+      font-size: 0.85em;
+    }
+
+    .btn-success {
+      background-color: #708f4d !important;
+      border: none;
+      border-radius: 12px;
+      transition: all 0.2s ease-in-out;
+      font-weight: 500;
+    }
+
+    .btn-success:hover {
+      background-color: #5e7a3d !important;
+      transform: translateY(-2px);
+    }
+
+    .agotado {
+      background: rgba(200, 0, 0, 0.1);
+      color: #b71c1c;
+      font-weight: 600;
+      font-size: 0.9em;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 4px 8px;
+      border-radius: 8px;
+    }
+
+    /* Carrito flotante */
+    .cart-btn {
+      position: fixed;
+      top: 25px;
+      right: 30px;
+      background-color: #708f4d;
+      color: white;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      text-align: center;
+      font-size: 28px;
+      z-index: 999;
+      cursor: pointer;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      transition: all 0.2s ease;
+    }
+
+    .cart-btn:hover {
+      transform: scale(1.05);
+      background-color: #5e7a3d;
+    }
+
+    .cart-btn span {
+      position: absolute;
+      top: 5px;
+      right: 8px;
+      background: #d32f2f;
+      border-radius: 50%;
+      font-size: 12px;
+      padding: 2px 6px;
+      color: white;
+    }
+
+    /* Efecto pulse al agregar al carrito */
+    @keyframes pulse {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(112, 143, 77, 0.7); }
+      70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(112, 143, 77, 0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(112, 143, 77, 0); }
+    }
+
+    .pulse {
+      animation: pulse 0.8s;
+    }
+
+    /* Animación entrada de tarjetas */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Modal */
+    .modal-content {
+      border-radius: 18px;
+      border: none;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .modal-header {
+      background-color: #708f4d !important;
+      border-top-left-radius: 18px;
+      border-top-right-radius: 18px;
+    }
+
+    #cartModal .modal-header {
+      background-color: #607d3b !important;
+    }
+
+    #total {
+      color: #2e2e2e;
+      font-weight: 600;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- Carrito flotante -->
+<div class="cart-btn" data-bs-toggle="modal" data-bs-target="#cartModal">
+  <i class="fa-solid fa-cart-shopping mt-3"></i>
+  <span id="cart-count">0</span>
+</div>
+
+<div class="container py-5">
+  <div class="header mb-4 text-center">
+    <h2>🛍️ Catálogo de Productos</h2>
+    <p class="text-muted">Selecciona productos, cantidades y envíalos por WhatsApp</p>
+  </div>
+
+  <div class="row g-4">
+    {% for p in items %}
+    <div class="col-md-3 col-sm-6">
+      <div class="card product-card text-center p-3 h-100 position-relative">
+        <img src="{{ p.image }}" alt="{{ p.description }}" class="img-fluid rounded mb-3" style="height:180px;object-fit:contain;">
+        {% if p.stock <= 0 %}
+          <!-- <div class="agotado bg-white px-2 rounded">AGOTADO</div> -->
+        {% endif %}
+        <div class="card-body">
+          <h6 class="card-title">{{ p.description or 'Sin descripción' }}</h6>
+          {% if p.stock > 0 %}
+            <p class="price mb-1">{{ p.price_str }}</p>
+            <p class="stock mb-2">Stock: <span id="stock-{{ p.id }}">{{ p.stock }}</span></p>
+            <button class="btn btn-success btn-sm add-to-cart"
+                    data-id="{{ p.id }}"
+                    data-name="{{ p.description }}"
+                    data-price="{{ p.price }}"
+                    data-stock="{{ p.stock }}"
+                    data-img="{{ p.image }}"
+                    data-price_str="{{ p.price_str }}">
+              Agregar 🛒
+            </button>
+          {% else %}
+            <p class="agotado">AGOTADO</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Modal cantidad -->
+<div class="modal fade" id="quantityModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Seleccionar cantidad</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img id="modal-img" class="img-fluid mb-3" style="max-height:150px;">
+        <h6 id="modal-name"></h6>
+        <p>Precio unitario: <span id="modal-price"></span></p>
+        <p>Stock disponible: <span id="modal-stock"></span></p>
+        <input type="number" id="modal-qty" class="form-control text-center mx-auto" style="max-width:120px;" min="1">
+      </div>
+      <div class="modal-footer">
+        <button id="confirmAdd" class="btn btn-success w-100">Agregar al carrito</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal carrito -->
+<div class="modal fade" id="cartModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">🛒 Tu carrito</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-bordered text-center">
+          <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th></th></tr></thead>
+          <tbody id="cart-items"></tbody>
+        </table>
+        <h4 class="text-end pe-3">Total: <span id="total">S/ 0.00</span></h4>
+      </div>
+      <div class="modal-footer">
+        <a id="send-whatsapp" target="_blank" class="btn btn-success w-100">Enviar pedido por WhatsApp 📱</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let selectedProduct = null;
+let cart = [];
+let stockData = {}; // almacenamiento local del stock visual
+
+document.querySelectorAll(".add-to-cart").forEach(btn => {
+  const id = btn.dataset.id;
+  stockData[id] = parseInt(btn.dataset.stock); // guardar stock inicial
+
+  btn.addEventListener("click", function() {
+    const currentStock = stockData[id];
+    if (currentStock <= 0) {
+      alert("Este producto está agotado 😞");
+      return;
+    }
+
+    selectedProduct = {
+      id: this.dataset.id,
+      name: this.dataset.name,
+      price: parseFloat(this.dataset.price),
+      price_str: this.dataset.price_str,
+      stock: currentStock,
+      img: this.dataset.img
+    };
+
+    document.getElementById("modal-img").src = selectedProduct.img;
+    document.getElementById("modal-name").textContent = selectedProduct.name;
+    document.getElementById("modal-price").textContent = selectedProduct.price_str;
+    document.getElementById("modal-stock").textContent = selectedProduct.stock;
+    document.getElementById("modal-qty").value = 1;
+
+    new bootstrap.Modal(document.getElementById("quantityModal")).show();
+  });
+});
+
+document.getElementById("confirmAdd").addEventListener("click", () => {
+  const qty = parseInt(document.getElementById("modal-qty").value);
+  if (qty <= 0 || qty > selectedProduct.stock) {
+    alert("Cantidad inválida o mayor al stock disponible");
+    return;
+  }
+
+  // Actualizar stock visual y real
+  const id = selectedProduct.id;
+  stockData[id] -= qty;
+  const stockEl = document.getElementById("stock-" + id);
+  stockEl.textContent = stockData[id];
+
+  if (stockData[id] <= 0) {
+    const card = stockEl.closest(".card");
+    card.querySelector(".card-body").innerHTML = `<p class="agotado">AGOTADO</p>`;
+  }
+
+  // Agregar o actualizar producto en carrito
+  const existing = cart.find(p => p.id === id);
+  if (existing) existing.qty += qty;
+  else cart.push({ ...selectedProduct, qty });
+
+  updateCart();
+  bootstrap.Modal.getInstance(document.getElementById("quantityModal")).hide();
+});
+
+function updateCart() {
+  const tbody = document.getElementById("cart-items");
+  tbody.innerHTML = "";
+  let total = 0;
+
+  cart.forEach((p, i) => {
+    const subtotal = p.qty * p.price;
+    total += subtotal;
+    tbody.innerHTML += `
+      <tr>
+        <td>${p.name}</td>
+        <td>${p.qty}</td>
+        <td>${p.price_str}</td>
+        <td>S/ ${subtotal.toFixed(2)}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="removeItem(${i})">🗑️</button></td>
+      </tr>`;
+  });
+
+  document.getElementById("total").textContent = "S/ " + total.toFixed(2);
+  document.getElementById("cart-count").textContent = cart.length;
+
+  const msg = cart.map(p => `${p.qty}x ${p.name} (${p.price_str})`).join("%0A");
+  const totalMsg = `Total: S/ ${total.toFixed(2)}`;
+  const numero = "{{ numero }}";
+  document.getElementById("send-whatsapp").href =
+    `https://wa.me/${numero}?text=🛒 Pedido:%0A${msg}%0A%0A${totalMsg}`;
+}
+
+function removeItem(i) {
+  const removed = cart[i];
+  if (removed) {
+    // Devolver stock visual
+    stockData[removed.id] += removed.qty;
+    const stockEl = document.getElementById("stock-" + removed.id);
+    if (stockEl) stockEl.textContent = stockData[removed.id];
+  }
+  cart.splice(i, 1);
+  updateCart();
+}
+</script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
