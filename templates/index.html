@@ -625,6 +625,8 @@ let currentFilteredData = [];
 let selectedSize = null; 
 const WHATSAPP_NUMBER = '51926804683'; 
 const POLLING_INTERVAL = 10000; 
+// ⭐️ NUEVO: Variable para rastrear la carga inicial
+let isInitialLoad = true; 
 
 // Obtener los elementos del DOM al inicio
 const sidebar = document.getElementById('sidebar');
@@ -634,21 +636,28 @@ const iconOpenSidebar = document.getElementById('iconOpenSidebar'); // Ícono de
 const iconCloseSidebar = document.getElementById('iconCloseSidebar'); // Ícono de X
 const loadingOverlay = document.getElementById('loadingOverlay'); // ⭐️ Referencia al nuevo overlay
 
-// ⭐️ NUEVA FUNCIÓN: Mostrar Cargador
+// ⭐️ FUNCIÓN: Mostrar Cargador
 function showLoading() {
-    loadingOverlay.style.opacity = '1';
-    loadingOverlay.style.display = 'flex';
+    // Solo mostramos si es la carga inicial
+    if (isInitialLoad) {
+        loadingOverlay.style.opacity = '1';
+        loadingOverlay.style.display = 'flex';
+    }
 }
 
-// ⭐️ NUEVA FUNCIÓN: Ocultar Cargador
+// ⭐️ FUNCIÓN: Ocultar Cargador
 function hideLoading() {
-    // Usamos setTimeout para asegurar una transición de desvanecimiento suave
-    setTimeout(() => {
-        loadingOverlay.style.opacity = '0';
+    // Solo ocultamos si es la carga inicial
+    if (isInitialLoad) {
         setTimeout(() => {
-            loadingOverlay.style.display = 'none';
-        }, 500); // Espera 500ms (igual que la transición CSS) antes de ocultar
-    }, 200); // Un pequeño retraso de 200ms para que el usuario perciba la carga
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+                // ⭐️ Marcamos la carga inicial como completada aquí
+                isInitialLoad = false;
+            }, 500); 
+        }, 200); 
+    }
 }
 
 
@@ -693,14 +702,17 @@ function toggleSidebar() {
 // --- Funciones de Carga y Polling (Tiempo Real) ---
 
 async function cargarProductos() {
-  // ⭐️ Mostrar cargador al inicio de la carga
+  // ⭐️ Solo mostrar cargador si es la primera carga
   showLoading(); 
   
   let newData = [];
   try {
+    // Simulación de carga:
+    if (isInitialLoad) {
+        await new Promise(resolve => setTimeout(resolve, 1500)); 
+    }
+    
     // Nota: Requeriría un servidor en funcionamiento para /api/productos
-    // setTimeout simulando el delay de la red para probar el cargador
-    await new Promise(resolve => setTimeout(resolve, 1500)); 
     const res = await fetch('/api/productos'); 
     
     if (!res.ok) {
@@ -715,7 +727,7 @@ async function cargarProductos() {
     if (data.length === 0) {
         document.getElementById("productGrid").innerHTML = '<div class="col-12"><p class="text-center text-danger fs-5 mt-5">Error al conectar con el catálogo. Intente de nuevo más tarde.</p></div>';
     }
-    // ⭐️ Ocultar cargador incluso si falla la carga
+    // ⭐️ Ocultar cargador solo si es la carga inicial
     hideLoading();
     return;
   }
@@ -739,7 +751,7 @@ async function cargarProductos() {
       populateFilters();
       renderProducts();
   } else {
-      // ⭐️ Ocultar cargador si no hay cambios y no se llama a renderProducts
+      // ⭐️ Ocultar cargador si no hay cambios (solo si es la carga inicial)
       hideLoading();
   }
 }
@@ -813,7 +825,7 @@ function renderProducts() {
       grid.innerHTML = '<div class="col-12"><p class="text-center text-muted fs-5 mt-5">No se encontraron productos que coincidan con los filtros.</p></div>';
   }
   
-  // ⭐️ Ocultar cargador al terminar de renderizar
+  // ⭐️ Ocultar cargador solo si es la carga inicial
   hideLoading();
 }
 
