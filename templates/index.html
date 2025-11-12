@@ -29,6 +29,36 @@ body {
   overflow-x: hidden;
 }
 
+/* ⭐️ NUEVO: ESTILOS PARA EL OVERLAY DE CARGA */
+#loadingOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9); /* Fondo blanco semitransparente */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000; /* Alto z-index para estar sobre todo */
+    transition: opacity 0.5s ease;
+}
+.loading-text {
+    color: var(--color-primary-italia);
+    font-size: 18px;
+    font-weight: 500;
+    margin-top: 15px;
+    letter-spacing: 1px;
+}
+.spinner-border {
+    color: var(--color-primary-italia);
+    width: 3rem;
+    height: 3rem;
+}
+/* Fin de estilos de carga */
+
+
 /* ===== SIDEBAR (FILTROS) - Comportamiento Base (Oculto) ===== */
 .sidebar {
   position: fixed;
@@ -447,6 +477,12 @@ body {
 
 <body>
 
+<div id="loadingOverlay">
+    <div class="spinner-border" role="status">
+        <span class="visually-hidden">Cargando...</span>
+    </div>
+    <div class="loading-text">Cargando Catálogo...</div>
+</div>
 <div class="catalog-header-wrapper">
     
     <button id="toggleSidebarBtn" onclick="toggleSidebar()">
@@ -596,6 +632,25 @@ const mainContent = document.getElementById('mainContent');
 const toggleBtn = document.getElementById('toggleSidebarBtn');
 const iconOpenSidebar = document.getElementById('iconOpenSidebar'); // Ícono de hamburguesa
 const iconCloseSidebar = document.getElementById('iconCloseSidebar'); // Ícono de X
+const loadingOverlay = document.getElementById('loadingOverlay'); // ⭐️ Referencia al nuevo overlay
+
+// ⭐️ NUEVA FUNCIÓN: Mostrar Cargador
+function showLoading() {
+    loadingOverlay.style.opacity = '1';
+    loadingOverlay.style.display = 'flex';
+}
+
+// ⭐️ NUEVA FUNCIÓN: Ocultar Cargador
+function hideLoading() {
+    // Usamos setTimeout para asegurar una transición de desvanecimiento suave
+    setTimeout(() => {
+        loadingOverlay.style.opacity = '0';
+        setTimeout(() => {
+            loadingOverlay.style.display = 'none';
+        }, 500); // Espera 500ms (igual que la transición CSS) antes de ocultar
+    }, 200); // Un pequeño retraso de 200ms para que el usuario perciba la carga
+}
+
 
 // Inicializar el Toast una vez que el DOM esté listo
 document.addEventListener('DOMContentLoaded', function () {
@@ -638,9 +693,14 @@ function toggleSidebar() {
 // --- Funciones de Carga y Polling (Tiempo Real) ---
 
 async function cargarProductos() {
+  // ⭐️ Mostrar cargador al inicio de la carga
+  showLoading(); 
+  
   let newData = [];
   try {
     // Nota: Requeriría un servidor en funcionamiento para /api/productos
+    // setTimeout simulando el delay de la red para probar el cargador
+    await new Promise(resolve => setTimeout(resolve, 1500)); 
     const res = await fetch('/api/productos'); 
     
     if (!res.ok) {
@@ -655,6 +715,8 @@ async function cargarProductos() {
     if (data.length === 0) {
         document.getElementById("productGrid").innerHTML = '<div class="col-12"><p class="text-center text-danger fs-5 mt-5">Error al conectar con el catálogo. Intente de nuevo más tarde.</p></div>';
     }
+    // ⭐️ Ocultar cargador incluso si falla la carga
+    hideLoading();
     return;
   }
   
@@ -676,6 +738,9 @@ async function cargarProductos() {
 
       populateFilters();
       renderProducts();
+  } else {
+      // ⭐️ Ocultar cargador si no hay cambios y no se llama a renderProducts
+      hideLoading();
   }
 }
 
@@ -747,6 +812,9 @@ function renderProducts() {
   if (grid.innerHTML === "") {
       grid.innerHTML = '<div class="col-12"><p class="text-center text-muted fs-5 mt-5">No se encontraron productos que coincidan con los filtros.</p></div>';
   }
+  
+  // ⭐️ Ocultar cargador al terminar de renderizar
+  hideLoading();
 }
 
 // --- Funciones de Modal y Carrito ---
@@ -936,7 +1004,7 @@ function updateCart(){
       return `*${p.qty}x* ${p.description}${sizeWtsp} (S/ ${parseFloat(p.price).toFixed(2)})`;
   }).join("%0A");
 
-  const whatsappMsg = `*🇪🇸 Pedido Productos (Elegancia Italiana)*%0A%0A${msg}%0A%0A*Total: S/ ${total.toFixed(2)}*%0A%0A_Por favor, confirme mi pedido. ¡Gracias!_`;
+  const whatsappMsg = `*Pedido Productos*%0A%0A${msg}%0A%0A*Total: S/ ${total.toFixed(2)}*%0A%0A_Por favor, confirme mi pedido. ¡Gracias!_`;
   document.getElementById("send-whatsapp").href=`https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMsg}`; 
 }
 
